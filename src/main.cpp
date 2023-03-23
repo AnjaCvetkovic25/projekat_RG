@@ -14,6 +14,8 @@
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 
+#include<rg/scena.h>
+
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -144,6 +146,7 @@ int main() {
     if (programState->ImGuiEnabled) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
+
     // Init Imgui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -161,24 +164,77 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    //Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    Shader ourShader("resources/shaders/terenSh.vs", "resources/shaders/terenSh.fs");
 
-    // load models
-    // -----------
-    Model ourModel("resources/objects/backpack/backpack.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+//    // load models
+//    // -----------
+//    Model ourModel("resources/objects/backpack/backpack.obj");
+//    ourModel.SetShaderTextureNamePrefix("material.");
+//
+//    PointLight& pointLight = programState->pointLight;
+//    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
+//    pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
+//    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
+//    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+//
+//    pointLight.constant = 1.0f;
+//    pointLight.linear = 0.09f;
+//    pointLight.quadratic = 0.032f;
 
-    PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
-    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
-    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+    //load terrain
 
-    pointLight.constant = 1.0f;
-    pointLight.linear = 0.09f;
-    pointLight.quadratic = 0.032f;
+    unsigned int terrainVAO=loadTerrain();
+
+    float transparentVertices[]={
+            //coords                        //normals                    //tex coords
+            0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,1.0f,
+            0.0f, -0.5f, 0.0f, 0.0f,0.0f,0.0f,0.0f,0.0f,
+            1.0f,-0.5f,0.0f,0.0f,0.0f,0.0f,1.0f,0.0f,
+
+            0.0f,0.5f,0.0f,0.0f,0.0f,0.0f,0.0f,1.0f,
+            1.0f,-0.5f,0.0f,0.0f,0.0f,0.0f,1.0f,0.0f,
+            1.0f,0.5f,0.0f,0.0f,0.0f,0.0f,1.0f,1.0f
+    };
+
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1,&transparentVAO);
+    glGenBuffers(1,&transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER,transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(transparentVertices),transparentVertices,GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(6*sizeof(float)));
 
 
+
+
+    //load texture
+
+    unsigned int terrainTexture= TextureFromFile("grass.jpg","resources/textures"); //izmeniti teksturu, ova semaless nesto ne radi
+    unsigned int grassTexture= TextureFromFile("grass_transparent.png","resources/textures");
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    
+//    vector<glm::vec3> vegetation{
+//        glm::vec3(-1.5f,0.0f,-0.48f),
+//        glm::vec3(1.5f,0.0f,0.51f),
+//        glm::vec3(-0.3f,0.0f,-2.48f),
+//        glm::vec3(0.5f,0.0f,-0.6f)
+//    };
+    unsigned int numGrass=50;
+    vector<glm::vec3> vegetation(numGrass,glm::vec3(0.0f,0.0f,0.0f));
+
+    for(unsigned int i=0;i<numGrass;i++)
+        vegetation[i]=glm::vec3(-50.0f+float(rand()%100)+sinf(rand()),0,-50.0f+float(rand()%100)+cosf(rand()));
+
+    //shader config
+    ourShader.use();
+    ourShader.setInt("texture1",0);
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -203,33 +259,59 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
-        ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-        ourShader.setVec3("pointLight.position", pointLight.position);
-        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        ourShader.setVec3("pointLight.specular", pointLight.specular);
-        ourShader.setFloat("pointLight.constant", pointLight.constant);
-        ourShader.setFloat("pointLight.linear", pointLight.linear);
-        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        ourShader.setVec3("viewPosition", programState->camera.Position);
-        ourShader.setFloat("material.shininess", 32.0f);
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+       // ourShader.use();
+//        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
+//        ourShader.setVec3("pointLight.position", pointLight.position);
+//        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
+//        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+//        ourShader.setVec3("pointLight.specular", pointLight.specular);
+//        ourShader.setFloat("pointLight.constant", pointLight.constant);
+//        ourShader.setFloat("pointLight.linear", pointLight.linear);
+//        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+//        ourShader.setVec3("viewPosition", programState->camera.Position);
+//        ourShader.setFloat("material.shininess", 32.0f);
+//        // view/projection transformations
+//        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
+//                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+//        glm::mat4 view = programState->camera.GetViewMatrix();
+//        ourShader.setMat4("projection", projection);
+//        ourShader.setMat4("view", view);
+//
+//        // render the loaded model
+//        glm::mat4 model = glm::mat4(1.0f);
+//        model = glm::translate(model,
+//                               programState->backpackPosition); // translate it down so it's at the center of the scene
+//        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+//        ourShader.setMat4("model", model);
+//        ourModel.Draw(ourShader);
+            glDisable(GL_CULL_FACE);
+            ourShader.use();
+            glm::mat4 projection=glm::perspective(glm::radians(programState->camera.Zoom),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,100.0f);
+            glm::mat4 view=programState->camera.GetViewMatrix();
+            ourShader.setMat4("projection",projection);
+            ourShader.setMat4("view",view);
 
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+            glm::mat4 model=glm::mat4(1.0f);
+            ourShader.setMat4("model",model);
 
-        if (programState->ImGuiEnabled)
+            glBindVertexArray(terrainVAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D,terrainTexture);
+            glDrawArrays(GL_TRIANGLES,0,6);
+
+
+            //transparent grass
+            glBindVertexArray(transparentVAO);
+            glBindTexture(GL_TEXTURE_2D,grassTexture);
+            for(unsigned int i=0;i<vegetation.size();i++)
+            {
+                model=glm::mat4(1.0f);
+                model=glm::translate(model,vegetation[i]);
+                ourShader.setMat4("model",model);
+                glDrawArrays(GL_TRIANGLES,0,6);
+            }
+
+            if (programState->ImGuiEnabled)
             DrawImGui(programState);
 
 
@@ -247,6 +329,7 @@ int main() {
     ImGui::DestroyContext();
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
+    glDeleteVertexArrays(1,&terrainVAO);
     glfwTerminate();
     return 0;
 }
