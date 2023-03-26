@@ -102,6 +102,8 @@ void ProgramState::LoadFromFile(std::string filename) {
 ProgramState *programState;
 
 void DrawImGui(ProgramState *programState);
+unsigned int loadSkybox(vector<std::string> faces);
+unsigned int loadTexture(char const* path);
 
 int main() {
     // glfw: initialize and configure
@@ -166,6 +168,8 @@ int main() {
     // -------------------------
     //Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
     Shader ourShader("resources/shaders/terenSh.vs", "resources/shaders/terenSh.fs");
+    Shader cottageShader("resources/shaders/cottageShader.vs","resources/shaders/cottageShader.fs");
+    Shader skyboxShader("resources/shaders/skyboxShader.vs","resources/shaders/skyboxShader.fs");
 
 //    // load models
 //    // -----------
@@ -181,6 +185,84 @@ int main() {
 //    pointLight.constant = 1.0f;
 //    pointLight.linear = 0.09f;
 //    pointLight.quadratic = 0.032f;
+
+    //load cottage
+    Model cottage("resources/objects/cottage/cottage_obj.obj");
+    cottage.SetShaderTextureNamePrefix("material.");
+
+    //skybox
+
+    float skyboxVertices[]={
+            -1.0f,  1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            -1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f
+
+
+    };
+
+    //skyboxVAO
+    unsigned int skyboxVAO,skyboxVBO;
+    glGenVertexArrays(1,&skyboxVAO);
+    glGenBuffers(1,&skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER,skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(skyboxVertices),&skyboxVertices,GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)(0));
+
+    //load skybox texture
+
+    vector<std::string> faces{
+        FileSystem::getPath("resources/textures/skybox/right.jpg"),
+        FileSystem::getPath("resources/textures/skybox/left.jpg"),
+        FileSystem::getPath("resources/textures/skybox/top.jpg"),
+        FileSystem::getPath("resources/textures/skybox/bottom.jpg"),
+        FileSystem::getPath("resources/textures/skybox/front.jpg"),
+        FileSystem::getPath("resources/textures/skybox/back.jpg")
+
+    };
+    stbi_set_flip_vertically_on_load(false);
+    unsigned int skyboxTexture=loadSkybox(faces);
+    stbi_set_flip_vertically_on_load(true);
+
 
     //load terrain
 
@@ -215,10 +297,9 @@ int main() {
 
     //load texture
 
-    unsigned int terrainTexture= TextureFromFile("grass.jpg","resources/textures"); //izmeniti teksturu, ova semaless nesto ne radi
-    unsigned int grassTexture= TextureFromFile("grass_transparent.png","resources/textures");
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    unsigned int terrainTexture= loadTexture(FileSystem::getPath("resources/textures/dirt/Dirt_01.png").c_str()); //izmeniti teksturu, ova semaless nesto ne radi
+    unsigned int grassTexture= loadTexture(FileSystem::getPath("resources/textures/grass_transparent.png").c_str());
+
     
 //    vector<glm::vec3> vegetation{
 //        glm::vec3(-1.5f,0.0f,-0.48f),
@@ -235,6 +316,9 @@ int main() {
     //shader config
     ourShader.use();
     ourShader.setInt("texture1",0);
+
+    skyboxShader.use();
+    skyboxShader.setInt("skybox",0);
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -284,7 +368,7 @@ int main() {
 //        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
 //        ourShader.setMat4("model", model);
 //        ourModel.Draw(ourShader);
-            glDisable(GL_CULL_FACE);
+            //glDisable(GL_CULL_FACE);
             ourShader.use();
             glm::mat4 projection=glm::perspective(glm::radians(programState->camera.Zoom),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,100.0f);
             glm::mat4 view=programState->camera.GetViewMatrix();
@@ -298,7 +382,7 @@ int main() {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D,terrainTexture);
             glDrawArrays(GL_TRIANGLES,0,6);
-
+            glBindVertexArray(0);
 
             //transparent grass
             glBindVertexArray(transparentVAO);
@@ -307,12 +391,44 @@ int main() {
             {
                 model=glm::mat4(1.0f);
                 model=glm::translate(model,vegetation[i]);
+               // model=glm::scale(model,glm::vec3(2.0f));
                 ourShader.setMat4("model",model);
                 glDrawArrays(GL_TRIANGLES,0,6);
             }
+            glBindVertexArray(0);
+
+            //cottage
+            cottageShader.use();
+            cottageShader.setMat4("projection",projection);
+            cottageShader.setMat4("view",view);
+            model=glm::mat4(1.0f);
+            model=glm::translate(model, glm::vec3(10.0f,0.0f,3.0f));
+            cottageShader.setMat4("model",model);
+            cottage.Draw(cottageShader);
+
+
+
+            //draw skybox
+            glDepthFunc(GL_LEQUAL);
+            skyboxShader.use();
+            view=glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); //izbacujemo translaciju iz view mat
+            skyboxShader.setMat4("view",view);
+            skyboxShader.setMat4("projection",projection);
+
+            glBindVertexArray(skyboxVAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP,skyboxTexture);
+            glDrawArrays(GL_TRIANGLES,0,36);
+            glBindVertexArray(0);
+
+            glDepthFunc(GL_LESS);
+
+
 
             if (programState->ImGuiEnabled)
             DrawImGui(programState);
+
+
 
 
 
@@ -330,6 +446,8 @@ int main() {
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
     glDeleteVertexArrays(1,&terrainVAO);
+    glDeleteVertexArrays(1,&skyboxVAO);
+
     glfwTerminate();
     return 0;
 }
@@ -428,4 +546,71 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
+}
+
+unsigned int loadSkybox(vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1,&textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP,textureID);
+
+    int width,height,nrChannels;
+    for(unsigned int i =0; i<faces.size();i++)
+    {
+        unsigned char *data=stbi_load(faces[i].c_str(),&width,&height,&nrChannels,0);
+        if(data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout<<"Skybox texture failed to load at path: "<<faces[i]<<std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP,GL_TEXTURE_WRAP_R,GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}
+unsigned int loadTexture(char const* path)
+{
+    unsigned int textureID;
+    glGenTextures(1,&textureID);
+
+    int width,height, nrComponents;
+    unsigned char *data=stbi_load(path,&width,&height,&nrComponents,0);
+    if(data)
+    {
+        GLenum format;
+        if(nrComponents==1)
+            format=GL_RED;
+        else if(nrComponents==3)
+            format=GL_RGB;
+        else if(nrComponents==4)
+            format=GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D,textureID);
+        glTexImage2D(GL_TEXTURE_2D,0,format, width, height,0,format,GL_UNSIGNED_BYTE,data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+        stbi_image_free(data);
+
+    }
+    else
+    {
+        std::cout<<"TExture failed to load at path: "<<path<<std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
 }
