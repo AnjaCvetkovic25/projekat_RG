@@ -10,10 +10,13 @@ unsigned int loadTerrain()
     float vertices[]=
             {
             //coords                         //normals                  //tex coords
-            50.0f,0.0f,-50.0f,0.0f,1.0f,0.0f,50.0f,50.0f,//top right
-            50.0f,0.0f,50.0f,0.0f,1.0f,0.0f,50.0f,0.0f, //bottom right
-            -50.0f,0.0f,50.0f,0.0f,1.0f,0.0f,0.0f,50.0f, //top left
-            -50.0f,0.0f,-50.0f,0.0f,1.0f,0.0f,0.0f,0.0f //bottom left
+            100.0f,0.0f,-100.0f,0.0f,1.0f,0.0f,50.0f,50.0f,//top right
+            100.0f,0.0f,100.0f,0.0f,1.0f,0.0f,50.0f,0.0f, //bottom right
+            -100.0f,0.0f,-100.0f,0.0f,1.0f,0.0f,0.0f,50.0f, //top left
+
+            100.0f,0.0f,100.0f,0.0f,1.0f,0.0f,50.0f,0.0f, //bottom right
+            -100.0f,0.0f,100.0f,0.0f,1.0f,0.0f,0.0f,50.0f,
+            -100.0f,0.0f,-100.0f,0.0f,1.0f,0.0f,0.0f,0.0f //bottom left
 
             };
     float indices[]={
@@ -46,7 +49,11 @@ unsigned int loadTerrain()
     glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,8*sizeof(float),(void*)(6*sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    glBindVertexArray(0);
+
     return terrainVAO;
 
 }
+
+
 #endif //PROJECT_BASE_SCENA_H

@@ -166,10 +166,12 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    //Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    //Shader baseShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
     Shader ourShader("resources/shaders/terenSh.vs", "resources/shaders/terenSh.fs");
     Shader cottageShader("resources/shaders/cottageShader.vs","resources/shaders/cottageShader.fs");
     Shader skyboxShader("resources/shaders/skyboxShader.vs","resources/shaders/skyboxShader.fs");
+    Shader grassInstancedShader("resources/shaders/grassInstanced.vs","resources/shaders/grassInstanced.fs");
+
 
 //    // load models
 //    // -----------
@@ -187,8 +189,11 @@ int main() {
 //    pointLight.quadratic = 0.032f;
 
     //load cottage
-    Model cottage("resources/objects/cottage/cottage_obj.obj");
+    stbi_set_flip_vertically_on_load(false);
+    Model cottage("resources/objects/cottage/LongHouse.obj");//nadjen model kolibe koji radi
     cottage.SetShaderTextureNamePrefix("material.");
+    stbi_set_flip_vertically_on_load(true);
+
 
     //skybox
 
@@ -299,19 +304,59 @@ int main() {
 
     unsigned int terrainTexture= loadTexture(FileSystem::getPath("resources/textures/dirt/Dirt_01.png").c_str()); //izmeniti teksturu, ova semaless nesto ne radi
     unsigned int grassTexture= loadTexture(FileSystem::getPath("resources/textures/grass_transparent.png").c_str());
-
-    
-//    vector<glm::vec3> vegetation{
-//        glm::vec3(-1.5f,0.0f,-0.48f),
-//        glm::vec3(1.5f,0.0f,0.51f),
-//        glm::vec3(-0.3f,0.0f,-2.48f),
-//        glm::vec3(0.5f,0.0f,-0.6f)
-//    };
-    unsigned int numGrass=50;
-    vector<glm::vec3> vegetation(numGrass,glm::vec3(0.0f,0.0f,0.0f));
-
+    //generating random model matrices
+    unsigned int numGrass=100000;
+    glm::mat4* modelMatrices;
+    modelMatrices=new glm::mat4[numGrass];
+    srand(5);
+    //float offset=100.0f;
     for(unsigned int i=0;i<numGrass;i++)
-        vegetation[i]=glm::vec3(-50.0f+float(rand()%100)+sinf(rand()),0,-50.0f+float(rand()%100)+cosf(rand()));
+    {
+        glm::mat4 model=glm::mat4(1.0f);
+        //1. translation
+        float x=(rand()%200)+sin(rand())-100.0f;
+        float y=0.0f;
+        float z =(rand()%200)+cos(rand())-100.0f;
+        if( (x>=-10.0f && x<=30.0f) && (z>=-7 && z<=13))
+        {
+            x+=(31.0f+rand()%70)*1.0f;
+            z+=(15.0f+rand()%70)*1.0f;
+        }
+        //if x i z unutar kuce
+        model=glm::translate(model, glm::vec3(x,y,z));
+        //2.rotaion , no scaling
+        model=glm::rotate(model,(rand()%360)*1.0f,glm::vec3(0.0f,1.0f,0.0f));
+
+        modelMatrices[i]=model;
+
+    }
+    //instanced buffer config
+    unsigned int instancedGrassVBO;
+    glGenBuffers(1,&instancedGrassVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,instancedGrassVBO);
+    glBufferData(GL_ARRAY_BUFFER,numGrass*sizeof(glm::mat4),&modelMatrices[0],GL_STATIC_DRAW);
+
+    glBindVertexArray(transparentVAO);
+    //mat 4x4
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)0);
+
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(sizeof(glm::vec4)));
+
+    glEnableVertexAttribArray(5);
+    glVertexAttribPointer(5,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(2*sizeof(glm::vec4)));
+
+    glEnableVertexAttribArray(6);
+    glVertexAttribPointer(6,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(3*sizeof(glm::vec4)));
+
+    glVertexAttribDivisor(3,1);
+    glVertexAttribDivisor(4,1);
+    glVertexAttribDivisor(5,1);
+    glVertexAttribDivisor(6,1);
+
+    glBindVertexArray(0);
+
 
     //shader config
     ourShader.use();
@@ -384,17 +429,28 @@ int main() {
             glDrawArrays(GL_TRIANGLES,0,6);
             glBindVertexArray(0);
 
-            //transparent grass
-            glBindVertexArray(transparentVAO);
+            //instanced grass
+//            glBindVertexArray(transparentVAO);
+//            glBindTexture(GL_TEXTURE_2D,grassTexture);
+//            for(unsigned int i=0;i<vegetation.size();i++)
+//            {
+//                model=glm::mat4(1.0f);
+//                model=glm::translate(model,vegetation[i]);
+//               // model=glm::scale(model,glm::vec3(2.0f));
+//                ourShader.setMat4("model",model);
+//                glDrawArrays(GL_TRIANGLES,0,6);
+//            }
+//            glBindVertexArray(0);
+
+            grassInstancedShader.use();
+            grassInstancedShader.setInt("texture_diffuse1",0);
+            grassInstancedShader.setMat4("projection",projection);
+        grassInstancedShader.setMat4("view",view);
+
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D,grassTexture);
-            for(unsigned int i=0;i<vegetation.size();i++)
-            {
-                model=glm::mat4(1.0f);
-                model=glm::translate(model,vegetation[i]);
-               // model=glm::scale(model,glm::vec3(2.0f));
-                ourShader.setMat4("model",model);
-                glDrawArrays(GL_TRIANGLES,0,6);
-            }
+            glBindVertexArray(transparentVAO);
+            glDrawArraysInstanced(GL_TRIANGLES,0,6,numGrass);
             glBindVertexArray(0);
 
             //cottage
@@ -405,6 +461,7 @@ int main() {
             model=glm::translate(model, glm::vec3(10.0f,0.0f,3.0f));
             cottageShader.setMat4("model",model);
             cottage.Draw(cottageShader);
+
 
 
 
