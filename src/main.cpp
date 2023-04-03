@@ -53,6 +53,13 @@ struct PointLight {
     float quadratic;
 };
 
+struct DirLight {
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
@@ -171,6 +178,7 @@ int main() {
     Shader cottageShader("resources/shaders/cottageShader.vs","resources/shaders/cottageShader.fs");
     Shader skyboxShader("resources/shaders/skyboxShader.vs","resources/shaders/skyboxShader.fs");
     Shader grassInstancedShader("resources/shaders/grassInstanced.vs","resources/shaders/grassInstanced.fs");
+    Shader treeShader("resources/shaders/treeShader.vs","resources/shaders/treeShader.fs");
 
 
 //    // load models
@@ -188,11 +196,82 @@ int main() {
 //    pointLight.linear = 0.09f;
 //    pointLight.quadratic = 0.032f;
 
+    DirLight dirLight;
+    dirLight.direction=glm::vec3(0.59f,-1.22f,0.0f);
+    dirLight.ambient=glm::vec3(0.9,0.9,0.9);
+    dirLight.diffuse=glm::vec3(0.9,0.9,0.8);
+    dirLight.specular=glm::vec3(1.0,1.0,1.0);
+
+    PointLight pointLight;
+    pointLight.position = glm::vec3(100.0f, 5.0, 0.0);
+    pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
+    pointLight.diffuse = glm::vec3(10, 10, 10);
+    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+
+    pointLight.constant = 1.0f;
+    pointLight.linear = 0.5f;
+    pointLight.quadratic = 0.032f;
+
     //load cottage
     stbi_set_flip_vertically_on_load(false);
     Model cottage("resources/objects/cottage/LongHouse.obj");//nadjen model kolibe koji radi
     cottage.SetShaderTextureNamePrefix("material.");
     stbi_set_flip_vertically_on_load(true);
+
+    //load tree model
+    Model tree("resources/objects/tree/oaktree.obj");
+    tree.SetShaderTextureNamePrefix("material.");
+    //generating random model matrices for trees
+    unsigned int numTree=10;
+    glm::mat4* modelTree;
+    modelTree=new glm::mat4[numTree];
+    srand(10);
+    for(unsigned int i=0;i<numTree;i++)
+    {
+        glm::mat4 model=glm::mat4(1.0f);
+        //translation
+        float x=(rand()%200)+sin(rand())-100.0f;
+        float y=0.0f;
+        float z =(rand()%200)+cos(rand())-100.0f;
+        if( (x>=-10.0f && x<=30.0f) && (z>=-7 && z<=13))
+        {
+            x+=(30.0f+rand()%70)*1.0f;
+            z+=(13.0f+rand()%70)*1.0f;
+        }
+        //if x i z unutar kuce
+        model=glm::translate(model, glm::vec3(x,y,z));
+        //2.rotaion , no scaling
+        model=glm::rotate(model,(rand()%360)*1.0f,glm::vec3(0.0f,1.0f,0.0f));
+
+        modelTree[i]=model;
+
+    }
+    //config instanced array for tree model
+    unsigned int treeVBO;
+    glGenBuffers(1,&treeVBO);
+    glBindBuffer(GL_ARRAY_BUFFER,treeVBO);
+    glBufferData(GL_ARRAY_BUFFER,numTree*sizeof(glm::mat4),&modelTree[0],GL_STATIC_DRAW);
+    //set vertex attribs
+    for(unsigned int i=0;i<tree.meshes.size(); i++)
+    {
+        unsigned int VAO=tree.meshes[i].VAO;
+        glBindVertexArray(VAO);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)0);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(sizeof(glm::vec4)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(2*sizeof(glm::vec4)));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6,4,GL_FLOAT,GL_FALSE,sizeof(glm::mat4),(void*)(3*sizeof(glm::vec4)));
+
+        glVertexAttribDivisor(3,1);
+        glVertexAttribDivisor(4,1);
+        glVertexAttribDivisor(5,1);
+        glVertexAttribDivisor(6,1);
+
+        glBindVertexArray(0);
+    }
 
 
     //skybox
@@ -300,6 +379,7 @@ int main() {
 
 
 
+
     //load texture
 
     unsigned int terrainTexture= loadTexture(FileSystem::getPath("resources/textures/dirt/Dirt_01.png").c_str()); //izmeniti teksturu, ova semaless nesto ne radi
@@ -319,8 +399,8 @@ int main() {
         float z =(rand()%200)+cos(rand())-100.0f;
         if( (x>=-10.0f && x<=30.0f) && (z>=-7 && z<=13))
         {
-            x+=(31.0f+rand()%70)*1.0f;
-            z+=(15.0f+rand()%70)*1.0f;
+            x=(29.0f+rand()%70)*1.0f;
+            z=(13.0f+rand()%70)*1.0f; //iscratava travke van terena
         }
         //if x i z unutar kuce
         model=glm::translate(model, glm::vec3(x,y,z));
@@ -414,11 +494,24 @@ int main() {
 //        ourShader.setMat4("model", model);
 //        ourModel.Draw(ourShader);
             //glDisable(GL_CULL_FACE);
+            //render terrain
             ourShader.use();
             glm::mat4 projection=glm::perspective(glm::radians(programState->camera.Zoom),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,100.0f);
             glm::mat4 view=programState->camera.GetViewMatrix();
             ourShader.setMat4("projection",projection);
             ourShader.setMat4("view",view);
+            ourShader.setVec3("pointLight.position",pointLight.position);
+            ourShader.setVec3("pointLight.ambient",pointLight.ambient);
+            ourShader.setVec3("pointLight.diffuse",pointLight.diffuse);
+            ourShader.setVec3("pointLight.specular",pointLight.specular);
+            ourShader.setFloat("pointLight.constant",pointLight.constant);
+            ourShader.setFloat("pointLight.linear",pointLight.linear);
+            ourShader.setFloat("pointLight.quadratic",pointLight.quadratic);
+            ourShader.setVec3("dirLight.direction",dirLight.direction);
+            ourShader.setVec3("dirLight.ambient",dirLight.ambient);
+            ourShader.setVec3("dirLight.diffuse",dirLight.diffuse);
+            ourShader.setVec3("dirLight.specular",dirLight.specular);
+            ourShader.setVec3("viewPos", programState->camera.Position);
 
             glm::mat4 model=glm::mat4(1.0f);
             ourShader.setMat4("model",model);
@@ -457,12 +550,37 @@ int main() {
             cottageShader.use();
             cottageShader.setMat4("projection",projection);
             cottageShader.setMat4("view",view);
+            cottageShader.setVec3("pointLight.position",pointLight.position);
+            cottageShader.setVec3("pointLight.ambient",pointLight.ambient);
+            cottageShader.setVec3("pointLight.diffuse",pointLight.diffuse);
+            cottageShader.setVec3("pointLight.specular",pointLight.specular);
+            cottageShader.setFloat("pointLight.constant",pointLight.constant);
+            cottageShader.setFloat("pointLight.linear",pointLight.linear);
+            cottageShader.setFloat("pointLight.quadratic",pointLight.quadratic);
+            cottageShader.setVec3("dirLight.direction",dirLight.direction);
+            cottageShader.setVec3("dirLight.ambient",dirLight.ambient);
+            cottageShader.setVec3("dirLight.diffuse",dirLight.diffuse);
+            cottageShader.setVec3("dirLight.specular",dirLight.specular);
+            cottageShader.setVec3("viewPosition", programState->camera.Position);
             model=glm::mat4(1.0f);
             model=glm::translate(model, glm::vec3(10.0f,0.0f,3.0f));
             cottageShader.setMat4("model",model);
             cottage.Draw(cottageShader);
 
+            //tree
 
+            treeShader.use();
+            treeShader.setMat4("projection",projection);
+            treeShader.setMat4("view",view);
+            treeShader.setInt("material.texture_diffuse1",0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D,tree.textures_loaded[0].id);
+            for(unsigned int i=0;i<tree.meshes.size();i++)
+            {
+                glBindVertexArray(tree.meshes[i].VAO);
+                glDrawElementsInstanced(GL_TRIANGLES,tree.meshes[i].indices.size(),GL_UNSIGNED_INT,0,numTree);
+                glBindVertexArray(0);
+            }
 
 
             //draw skybox
