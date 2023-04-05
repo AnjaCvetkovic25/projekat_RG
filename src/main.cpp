@@ -174,7 +174,8 @@ int main() {
     // build and compile shaders
     // -------------------------
     //Shader baseShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
-    Shader ourShader("resources/shaders/terenSh.vs", "resources/shaders/terenSh.fs");
+    Shader ourShader("resources/shaders/terenSh.vs", "resources/shaders/terenSh.fs"); //shader za teren, nesretno ime
+    Shader floorShader("resources/shaders/terenSh.vs", "resources/shaders/terenSh.fs");
     Shader cottageShader("resources/shaders/cottageShader.vs","resources/shaders/cottageShader.fs");
     Shader skyboxShader("resources/shaders/skyboxShader.vs","resources/shaders/skyboxShader.fs");
     Shader grassInstancedShader("resources/shaders/grassInstanced.vs","resources/shaders/grassInstanced.fs");
@@ -203,7 +204,7 @@ int main() {
     dirLight.specular=glm::vec3(1.0,1.0,1.0);
 
     PointLight pointLight;
-    pointLight.position = glm::vec3(100.0f, 5.0, 0.0);
+    pointLight.position = glm::vec3(-31.0f, 20.0, 56.0);
     pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
     pointLight.diffuse = glm::vec3(10, 10, 10);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
@@ -219,13 +220,13 @@ int main() {
     stbi_set_flip_vertically_on_load(true);
 
     //load tree model
-    Model tree("resources/objects/tree/oaktree.obj");
+    Model tree("resources/objects/tree/SpookyTree_00.obj");
     tree.SetShaderTextureNamePrefix("material.");
     //generating random model matrices for trees
-    unsigned int numTree=10;
+    unsigned int numTree=50;
     glm::mat4* modelTree;
     modelTree=new glm::mat4[numTree];
-    srand(10);
+    srand(12);
     for(unsigned int i=0;i<numTree;i++)
     {
         glm::mat4 model=glm::mat4(1.0f);
@@ -233,14 +234,15 @@ int main() {
         float x=(rand()%200)+sin(rand())-100.0f;
         float y=0.0f;
         float z =(rand()%200)+cos(rand())-100.0f;
-        if( (x>=-10.0f && x<=30.0f) && (z>=-7 && z<=13))
+        if( (x>=-30.0f && x<=30.0f) && (z>=-30 && z<=30))
         {
             x+=(30.0f+rand()%70)*1.0f;
             z+=(13.0f+rand()%70)*1.0f;
         }
         //if x i z unutar kuce
         model=glm::translate(model, glm::vec3(x,y,z));
-        //2.rotaion , no scaling
+        model=glm::scale(model,glm::vec3(3.0));
+        //3.rotaion ,
         model=glm::rotate(model,(rand()%360)*1.0f,glm::vec3(0.0f,1.0f,0.0f));
 
         modelTree[i]=model;
@@ -352,6 +354,8 @@ int main() {
 
     unsigned int terrainVAO=loadTerrain();
 
+    unsigned int floorVAO=loadFloor();
+
     float transparentVertices[]={
             //coords                        //normals                    //tex coords
             0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,1.0f,
@@ -382,7 +386,8 @@ int main() {
 
     //load texture
 
-    unsigned int terrainTexture= loadTexture(FileSystem::getPath("resources/textures/dirt/Dirt_01.png").c_str()); //izmeniti teksturu, ova semaless nesto ne radi
+    unsigned int terrainTexture= loadTexture(FileSystem::getPath("resources/textures/dirt/Dirt_01.png").c_str()); //radi seamless textura
+    unsigned int floorTexture=loadTexture(FileSystem::getPath("resources/textures/FloorTile_S.jpg").c_str());
     unsigned int grassTexture= loadTexture(FileSystem::getPath("resources/textures/grass_transparent.png").c_str());
     //generating random model matrices
     unsigned int numGrass=100000;
@@ -404,7 +409,7 @@ int main() {
         }
         //if x i z unutar kuce
         model=glm::translate(model, glm::vec3(x,y,z));
-        //2.rotaion , no scaling
+        //2.rotation , no scaling
         model=glm::rotate(model,(rand()%360)*1.0f,glm::vec3(0.0f,1.0f,0.0f));
 
         modelMatrices[i]=model;
@@ -441,6 +446,9 @@ int main() {
     //shader config
     ourShader.use();
     ourShader.setInt("texture1",0);
+
+    floorShader.use();
+    floorShader.setInt("texture1",0);
 
     skyboxShader.use();
     skyboxShader.setInt("skybox",0);
@@ -494,6 +502,7 @@ int main() {
 //        ourShader.setMat4("model", model);
 //        ourModel.Draw(ourShader);
             //glDisable(GL_CULL_FACE);
+
             //render terrain
             ourShader.use();
             glm::mat4 projection=glm::perspective(glm::radians(programState->camera.Zoom),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,100.0f);
@@ -522,23 +531,40 @@ int main() {
             glDrawArrays(GL_TRIANGLES,0,6);
             glBindVertexArray(0);
 
-            //instanced grass
-//            glBindVertexArray(transparentVAO);
-//            glBindTexture(GL_TEXTURE_2D,grassTexture);
-//            for(unsigned int i=0;i<vegetation.size();i++)
-//            {
-//                model=glm::mat4(1.0f);
-//                model=glm::translate(model,vegetation[i]);
-//               // model=glm::scale(model,glm::vec3(2.0f));
-//                ourShader.setMat4("model",model);
-//                glDrawArrays(GL_TRIANGLES,0,6);
-//            }
-//            glBindVertexArray(0);
+            //floor
+        floorShader.use();
 
+        floorShader.setMat4("projection",projection);
+        floorShader.setMat4("view",view);
+        floorShader.setVec3("pointLight.position",pointLight.position);
+        floorShader.setVec3("pointLight.ambient",pointLight.ambient);
+        floorShader.setVec3("pointLight.diffuse",pointLight.diffuse);
+        floorShader.setVec3("pointLight.specular",pointLight.specular);
+        floorShader.setFloat("pointLight.constant",pointLight.constant);
+        floorShader.setFloat("pointLight.linear",pointLight.linear);
+        floorShader.setFloat("pointLight.quadratic",pointLight.quadratic);
+        floorShader.setVec3("dirLight.direction",dirLight.direction);
+        floorShader.setVec3("dirLight.ambient",dirLight.ambient);
+        floorShader.setVec3("dirLight.diffuse",dirLight.diffuse);
+        floorShader.setVec3("dirLight.specular",dirLight.specular);
+        floorShader.setVec3("viewPos", programState->camera.Position);
+
+        model=glm::mat4(1.0f);
+        model=glm::translate(model, glm::vec3(10.0f,5.2f,3.0f)); //transilramo tamo gde je koliba
+        floorShader.setMat4("model",model);
+
+        glBindVertexArray(floorVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,floorTexture);
+        glDrawArrays(GL_TRIANGLES,0,6);
+        glBindVertexArray(0);
+
+
+            //grass
             grassInstancedShader.use();
             grassInstancedShader.setInt("texture_diffuse1",0);
             grassInstancedShader.setMat4("projection",projection);
-        grassInstancedShader.setMat4("view",view);
+            grassInstancedShader.setMat4("view",view);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D,grassTexture);
@@ -573,6 +599,18 @@ int main() {
             treeShader.setMat4("projection",projection);
             treeShader.setMat4("view",view);
             treeShader.setInt("material.texture_diffuse1",0);
+        treeShader.setVec3("pointLight.position",pointLight.position);
+        treeShader.setVec3("pointLight.ambient",pointLight.ambient);
+        treeShader.setVec3("pointLight.diffuse",pointLight.diffuse);
+        treeShader.setVec3("pointLight.specular",pointLight.specular);
+        treeShader.setFloat("pointLight.constant",pointLight.constant);
+        treeShader.setFloat("pointLight.linear",pointLight.linear);
+        treeShader.setFloat("pointLight.quadratic",pointLight.quadratic);
+        treeShader.setVec3("dirLight.direction",dirLight.direction);
+        treeShader.setVec3("dirLight.ambient",dirLight.ambient);
+        treeShader.setVec3("dirLight.diffuse",dirLight.diffuse);
+        treeShader.setVec3("dirLight.specular",dirLight.specular);
+        treeShader.setVec3("viewPosition", programState->camera.Position);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D,tree.textures_loaded[0].id);
             for(unsigned int i=0;i<tree.meshes.size();i++)
@@ -684,12 +722,12 @@ void DrawImGui(ProgramState *programState) {
 
     {
         static float f = 0.0f;
-        ImGui::Begin("Hello window");
+        ImGui::Begin("Hello stranger");
         ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
+//        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
+//        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
+//        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
+//        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
 
         ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
         ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);

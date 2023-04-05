@@ -1,0 +1,24 @@
+# Created with Anim8or 1.00
+# Object "SpookyTree_00":
+
+newmtl pmat1
+Ka 0.878 0.878 0.878
+Kd 0.698 0.698 0.698
+Ks 1 1 1
+Ns 1.0
+map_Kd Spooky1Trunk_Diffuse.png
+
+newmtl pmat2
+Ka 0.878 0.878 0.878
+Kd 0.698 0.698 0.698
+Ks 1 1 1
+Ns 1.0
+map_Kd Spooky1Branch_Diffuse.png
+
+newmtl pmat4
+Ka 0.878 0.878 0.878
+Kd 0.698 0.698 0.698
+Ks 1 1 1
+Ns 1.0
+map_Kd Spooky1Twig_Diffuse.png
+
