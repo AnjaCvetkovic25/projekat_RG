@@ -199,24 +199,30 @@ int main() {
 
     DirLight dirLight;
     dirLight.direction=glm::vec3(0.59f,-1.22f,0.0f);
-    dirLight.ambient=glm::vec3(0.9,0.9,0.9);
+    dirLight.ambient=glm::vec3(0.6,0.6,0.6);
     dirLight.diffuse=glm::vec3(0.9,0.9,0.8);
     dirLight.specular=glm::vec3(1.0,1.0,1.0);
 
     PointLight pointLight;
-    pointLight.position = glm::vec3(-31.0f, 20.0, 56.0);
+    pointLight.position = glm::vec3(-22.0f,21.0f,26.0f);
     pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
     pointLight.diffuse = glm::vec3(10, 10, 10);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
     pointLight.constant = 1.0f;
-    pointLight.linear = 0.5f;
+    pointLight.linear = 0.7f;
     pointLight.quadratic = 0.032f;
 
     //load cottage
     stbi_set_flip_vertically_on_load(false);
     Model cottage("resources/objects/cottage/LongHouse.obj");//nadjen model kolibe koji radi
     cottage.SetShaderTextureNamePrefix("material.");
+    stbi_set_flip_vertically_on_load(true);
+
+    //load lamp model
+    stbi_set_flip_vertically_on_load(false);
+    Model lamp("resources/objects/lamp/StreetLamp.obj");
+    lamp.SetShaderTextureNamePrefix("material.");
     stbi_set_flip_vertically_on_load(true);
 
     //load tree model
@@ -592,6 +598,15 @@ int main() {
             model=glm::translate(model, glm::vec3(10.0f,0.0f,3.0f));
             cottageShader.setMat4("model",model);
             cottage.Draw(cottageShader);
+
+            //lamp
+
+        model=glm::mat4(1.0f);
+        model=glm::translate(model, glm::vec3(-22.0f,3.0f,26.0f));
+        model=glm::scale(model,glm::vec3(1.5f));
+        cottageShader.setMat4("model",model);
+        lamp.Draw(cottageShader);
+
 
             //tree
 

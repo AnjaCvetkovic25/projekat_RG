@@ -63,10 +63,11 @@ vec3 CalcDirLight(DirLight light, vec3 normal,vec3 viewDir)
 }
 vec3 CalcPointLight(PointLight light, vec3 normal,vec3 fragPos,vec3 viewDir)
 {
-    vec3 lightDir=normalize(light.position-fragPos);
+    vec3 lightDir=normalize(fragPos-light.position);
 
     float diff=max(dot(normal, lightDir),0.0);
     //attenuation
+
     float distance=length(light.position-fragPos);
     float attenuation=1.0/(light.constant+light.linear*distance+light.quadratic*(distance*distance));
 
@@ -75,6 +76,8 @@ vec3 CalcPointLight(PointLight light, vec3 normal,vec3 fragPos,vec3 viewDir)
 
     ambient*=attenuation;
     diffuse*=attenuation;
-
+ if(fragPos.y<=22.30)
     return (ambient+diffuse);
+    else
+    return ambient;
 }
