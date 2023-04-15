@@ -60,6 +60,21 @@ struct DirLight {
     glm::vec3 specular;
 };
 
+struct SpotLight{
+    glm::vec3 position;
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    float cutOff;
+    float outerCutOff; //u kosinusima!!!
+
+};
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
@@ -199,13 +214,13 @@ int main() {
 
     DirLight dirLight;
     dirLight.direction=glm::vec3(0.59f,-1.22f,0.0f);
-    dirLight.ambient=glm::vec3(0.6,0.6,0.6);
-    dirLight.diffuse=glm::vec3(0.9,0.9,0.8);
-    dirLight.specular=glm::vec3(1.0,1.0,1.0);
+    dirLight.ambient=glm::vec3(0.3,0.3,0.3);
+    dirLight.diffuse=glm::vec3(0.5,0.5,0.5);
+    dirLight.specular=glm::vec3(0.5,0.5,0.5);
 
     PointLight pointLight;
     pointLight.position = glm::vec3(-22.0f,21.0f,26.0f);
-    pointLight.ambient = glm::vec3(0.4, 0.4, 0.4);
+    pointLight.ambient = glm::vec3(4, 4, 4);
     pointLight.diffuse = glm::vec3(10, 10, 10);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
@@ -213,9 +228,25 @@ int main() {
     pointLight.linear = 0.7f;
     pointLight.quadratic = 0.032f;
 
+    SpotLight spotLight;
+    spotLight.position = glm::vec3(-22.0f,21.0f,26.0f);
+    spotLight.direction=glm::vec3(0.0,-1.0,0.0);
+    spotLight.ambient = glm::vec3(9.7, 7.2, 1.0);
+    spotLight.diffuse = glm::vec3(22.2, 16.1, 5.0);
+    spotLight.specular = glm::vec3(1.0, 1.0, 1.0);
+
+    spotLight.constant =1.0f;
+    spotLight.linear = 1.0f;
+    spotLight.quadratic = 0.0f;
+
+    spotLight.cutOff=glm::cos(glm::radians(10.0f));
+    spotLight.outerCutOff=glm::cos(glm::radians(15.0f));
+
+
+
     //load cottage
     stbi_set_flip_vertically_on_load(false);
-    Model cottage("resources/objects/cottage/LongHouse.obj");//nadjen model kolibe koji radi
+    Model cottage("resources/objects/cottage/cottage_obj.obj");//nadjen model kolibe koji radi
     cottage.SetShaderTextureNamePrefix("material.");
     stbi_set_flip_vertically_on_load(true);
 
@@ -481,32 +512,7 @@ int main() {
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // don't forget to enable shader before setting uniforms
-       // ourShader.use();
-//        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-//        ourShader.setVec3("pointLight.position", pointLight.position);
-//        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-//        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-//        ourShader.setVec3("pointLight.specular", pointLight.specular);
-//        ourShader.setFloat("pointLight.constant", pointLight.constant);
-//        ourShader.setFloat("pointLight.linear", pointLight.linear);
-//        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-//        ourShader.setVec3("viewPosition", programState->camera.Position);
-//        ourShader.setFloat("material.shininess", 32.0f);
-//        // view/projection transformations
-//        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-//                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-//        glm::mat4 view = programState->camera.GetViewMatrix();
-//        ourShader.setMat4("projection", projection);
-//        ourShader.setMat4("view", view);
-//
-//        // render the loaded model
-//        glm::mat4 model = glm::mat4(1.0f);
-//        model = glm::translate(model,
-//                               programState->backpackPosition); // translate it down so it's at the center of the scene
-//        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-//        ourShader.setMat4("model", model);
-//        ourModel.Draw(ourShader);
+
             //glDisable(GL_CULL_FACE);
 
             //render terrain
@@ -526,6 +532,17 @@ int main() {
             ourShader.setVec3("dirLight.ambient",dirLight.ambient);
             ourShader.setVec3("dirLight.diffuse",dirLight.diffuse);
             ourShader.setVec3("dirLight.specular",dirLight.specular);
+            ourShader.setVec3("spotLight.position",spotLight.position);
+            ourShader.setVec3("spotLight.direction",spotLight.direction);
+            ourShader.setVec3("spotLight.ambient",spotLight.ambient);
+            ourShader.setVec3("spotLight.diffuse",spotLight.diffuse);
+            ourShader.setVec3("spotLight.specular",spotLight.specular);
+            ourShader.setFloat("spotLight.constant",spotLight.constant);
+            ourShader.setFloat("spotLight.linear",spotLight.linear);
+            ourShader.setFloat("spotLight.quadratic",spotLight.quadratic);
+            ourShader.setFloat("spotLight.cutOff",spotLight.cutOff);
+            ourShader.setFloat("spotLight.position",spotLight.outerCutOff);
+
             ourShader.setVec3("viewPos", programState->camera.Position);
 
             glm::mat4 model=glm::mat4(1.0f);
@@ -593,9 +610,21 @@ int main() {
             cottageShader.setVec3("dirLight.ambient",dirLight.ambient);
             cottageShader.setVec3("dirLight.diffuse",dirLight.diffuse);
             cottageShader.setVec3("dirLight.specular",dirLight.specular);
+        cottageShader.setVec3("spotLight.position",spotLight.position);
+        cottageShader.setVec3("spotLight.direction",spotLight.direction);
+        cottageShader.setVec3("spotLight.ambient",spotLight.ambient);
+        cottageShader.setVec3("spotLight.diffuse",spotLight.diffuse);
+        cottageShader.setVec3("spotLight.specular",spotLight.specular);
+        cottageShader.setFloat("spotLight.constant",spotLight.constant);
+        cottageShader.setFloat("spotLight.linear",spotLight.linear);
+        cottageShader.setFloat("spotLight.quadratic",spotLight.quadratic);
+        cottageShader.setFloat("spotLight.cutOff",spotLight.cutOff);
+        cottageShader.setFloat("spotLight.position",spotLight.outerCutOff);
+        cottageShader.setFloat("material.shininess",5.0f);
             cottageShader.setVec3("viewPosition", programState->camera.Position);
             model=glm::mat4(1.0f);
-            model=glm::translate(model, glm::vec3(10.0f,0.0f,3.0f));
+            model=glm::translate(model, glm::vec3(10.0f,-0.5f,3.0f));
+            model=glm::scale(model,glm::vec3(1.5f));
             cottageShader.setMat4("model",model);
             cottage.Draw(cottageShader);
 
@@ -625,6 +654,17 @@ int main() {
         treeShader.setVec3("dirLight.ambient",dirLight.ambient);
         treeShader.setVec3("dirLight.diffuse",dirLight.diffuse);
         treeShader.setVec3("dirLight.specular",dirLight.specular);
+        treeShader.setVec3("spotLight.position",spotLight.position);
+        treeShader.setVec3("spotLight.direction",spotLight.direction);
+        treeShader.setVec3("spotLight.ambient",spotLight.ambient);
+        treeShader.setVec3("spotLight.diffuse",spotLight.diffuse);
+        treeShader.setVec3("spotLight.specular",spotLight.specular);
+        treeShader.setFloat("spotLight.constant",spotLight.constant);
+        treeShader.setFloat("spotLight.linear",spotLight.linear);
+        treeShader.setFloat("spotLight.quadratic",spotLight.quadratic);
+        treeShader.setFloat("spotLight.cutOff",spotLight.cutOff);
+        treeShader.setFloat("spotLight.position",spotLight.outerCutOff);
+        treeShader.setFloat("material.shininess",5.0f);
         treeShader.setVec3("viewPosition", programState->camera.Position);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D,tree.textures_loaded[0].id);

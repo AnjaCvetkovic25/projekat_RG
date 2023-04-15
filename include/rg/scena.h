@@ -61,13 +61,13 @@ unsigned int loadFloor()
     float verticesFloor[]=
             {
                     //coords                         //normals                  //tex coords
-                    20.0f,0.0f,-10.0f,0.0f,1.0f,0.0f,10.0f,5.0f,//top right
-                    20.0f,0.0f,10.0f,0.0f,1.0f,0.0f,10.0f,0.0f, //bottom right
-                    -20.0f,0.0f,-10.0f,0.0f,1.0f,0.0f,0.0f,5.0f, //top left
+                    20.0f,0.1f,-10.0f,0.0f,1.0f,0.0f,10.0f,5.0f,//top right
+                    20.0f,0.1f,10.0f,0.0f,1.0f,0.0f,10.0f,0.0f, //bottom right
+                    -20.0f,0.1f,-10.0f,0.0f,1.0f,0.0f,0.0f,5.0f, //top left
 
-                    20.0f,0.0f,10.0f,0.0f,1.0f,0.0f,10.0f,0.0f, //bottom right
-                    -20.0f,0.0f,10.0f,0.0f,1.0f,0.0f,0.0f,5.0f,
-                    -20.0f,0.0f,-10.0f,0.0f,1.0f,0.0f,0.0f,0.0f //bottom left
+                    20.0f,0.1f,10.0f,0.0f,1.0f,0.0f,10.0f,0.0f, //bottom right
+                    -20.0f,0.1f,10.0f,0.0f,1.0f,0.0f,0.0f,5.0f,
+                    -20.0f,0.1f,-10.0f,0.0f,1.0f,0.0f,0.0f,0.0f //bottom left
 
             };
     float indices[]={
