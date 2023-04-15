@@ -82,6 +82,7 @@ struct ProgramState {
     bool CameraMouseMovementUpdateEnabled = true;
     glm::vec3 backpackPosition = glm::vec3(0.0f);
     float backpackScale = 1.0f;
+    bool lightOff=false;
     PointLight pointLight;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
@@ -185,6 +186,10 @@ int main() {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    //face culling
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     // build and compile shaders
     // -------------------------
@@ -511,9 +516,65 @@ int main() {
         // ------
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if(!(programState->lightOff))
+        {
 
 
-            //glDisable(GL_CULL_FACE);
+
+
+            pointLight.position = glm::vec3(-22.0f,21.0f,26.0f);
+            pointLight.ambient = glm::vec3(4, 4, 4);
+            pointLight.diffuse = glm::vec3(10, 10, 10);
+            pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+
+            pointLight.constant = 1.0f;
+            pointLight.linear = 0.7f;
+            pointLight.quadratic = 0.032f;
+
+
+            spotLight.position = glm::vec3(-22.0f,21.0f,26.0f);
+            spotLight.direction=glm::vec3(0.0,-1.0,0.0);
+            spotLight.ambient = glm::vec3(9.7, 7.2, 1.0);
+            spotLight.diffuse = glm::vec3(22.2, 16.1, 5.0);
+            spotLight.specular = glm::vec3(1.0, 1.0, 1.0);
+
+            spotLight.constant =1.0f;
+            spotLight.linear = 1.0f;
+            spotLight.quadratic = 0.0f;
+
+            spotLight.cutOff=glm::cos(glm::radians(10.0f));
+            spotLight.outerCutOff=glm::cos(glm::radians(15.0f));
+        }
+        else
+        {
+
+
+
+            pointLight.position = glm::vec3(-22.0f,21.0f,26.0f);
+            pointLight.ambient = glm::vec3(0, 0, 0);
+            pointLight.diffuse = glm::vec3(0, 0, 0);
+            pointLight.specular = glm::vec3(0.0);
+
+            pointLight.constant = 1.0f;
+            pointLight.linear = 0.7f;
+            pointLight.quadratic = 0.032f;
+
+
+            spotLight.position = glm::vec3(-22.0f,21.0f,26.0f);
+            spotLight.direction=glm::vec3(0.0);
+            spotLight.ambient = glm::vec3(0.0);
+            spotLight.diffuse = glm::vec3(0.0);
+            spotLight.specular = glm::vec3(0.0);
+
+            spotLight.constant =1.0f;
+            spotLight.linear = 1.0f;
+            spotLight.quadratic = 0.0f;
+
+            spotLight.cutOff=glm::cos(glm::radians(10.0f));
+            spotLight.outerCutOff=glm::cos(glm::radians(15.0f));
+        }
+
+            glDisable(GL_CULL_FACE);
 
             //render terrain
             ourShader.use();
@@ -554,6 +615,8 @@ int main() {
             glDrawArrays(GL_TRIANGLES,0,6);
             glBindVertexArray(0);
 
+
+            glEnable(GL_CULL_FACE);
             //floor
         floorShader.use();
 
@@ -778,15 +841,8 @@ void DrawImGui(ProgramState *programState) {
     {
         static float f = 0.0f;
         ImGui::Begin("Hello stranger");
-        ImGui::Text("Hello text");
-//        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-//        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-//        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-//        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
+        ImGui::Checkbox("Turn off the light", &programState->lightOff);
 
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
         ImGui::End();
     }
 
