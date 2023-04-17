@@ -396,17 +396,17 @@ int main() {
 
     unsigned int terrainVAO=loadTerrain();
 
-    unsigned int floorVAO=loadFloor();
+    //load grass
 
     float transparentVertices[]={
             //coords                        //normals                    //tex coords
-            0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,1.0f,
-            0.0f, -0.5f, 0.0f, 0.0f,0.0f,0.0f,0.0f,0.0f,
-            1.0f,-0.5f,0.0f,0.0f,0.0f,0.0f,1.0f,0.0f,
+            0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,1.0f,
+            0.0f, -0.5f, 0.0f, 0.0f,0.0f,1.0f,0.0f,0.0f,
+            1.0f,-0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,0.0f,
 
-            0.0f,0.5f,0.0f,0.0f,0.0f,0.0f,0.0f,1.0f,
-            1.0f,-0.5f,0.0f,0.0f,0.0f,0.0f,1.0f,0.0f,
-            1.0f,0.5f,0.0f,0.0f,0.0f,0.0f,1.0f,1.0f
+            0.0f,0.5f,0.0f,0.0f,0.0f,1.0f,0.0f,1.0f,
+            1.0f,-0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,0.0f,
+            1.0f,0.5f,0.0f,0.0f,0.0f,1.0f,1.0f,1.0f
     };
 
     unsigned int transparentVAO, transparentVBO;
@@ -429,7 +429,7 @@ int main() {
     //load texture
 
     unsigned int terrainTexture= loadTexture(FileSystem::getPath("resources/textures/dirt/Dirt_01.png").c_str()); //radi seamless textura
-    unsigned int floorTexture=loadTexture(FileSystem::getPath("resources/textures/FloorTile_S.jpg").c_str());
+    //unsigned int floorTexture=loadTexture(FileSystem::getPath("resources/textures/FloorTile_S.jpg").c_str());
     unsigned int grassTexture= loadTexture(FileSystem::getPath("resources/textures/grass_transparent.png").c_str());
     //generating random model matrices
     unsigned int numGrass=100000;
@@ -489,8 +489,7 @@ int main() {
     ourShader.use();
     ourShader.setInt("texture1",0);
 
-    floorShader.use();
-    floorShader.setInt("texture1",0);
+
 
     skyboxShader.use();
     skyboxShader.setInt("skybox",0);
@@ -617,33 +616,8 @@ int main() {
 
 
             glEnable(GL_CULL_FACE);
-            //floor
-        floorShader.use();
 
-        floorShader.setMat4("projection",projection);
-        floorShader.setMat4("view",view);
-        floorShader.setVec3("pointLight.position",pointLight.position);
-        floorShader.setVec3("pointLight.ambient",pointLight.ambient);
-        floorShader.setVec3("pointLight.diffuse",pointLight.diffuse);
-        floorShader.setVec3("pointLight.specular",pointLight.specular);
-        floorShader.setFloat("pointLight.constant",pointLight.constant);
-        floorShader.setFloat("pointLight.linear",pointLight.linear);
-        floorShader.setFloat("pointLight.quadratic",pointLight.quadratic);
-        floorShader.setVec3("dirLight.direction",dirLight.direction);
-        floorShader.setVec3("dirLight.ambient",dirLight.ambient);
-        floorShader.setVec3("dirLight.diffuse",dirLight.diffuse);
-        floorShader.setVec3("dirLight.specular",dirLight.specular);
-        floorShader.setVec3("viewPos", programState->camera.Position);
 
-        model=glm::mat4(1.0f);
-        model=glm::translate(model, glm::vec3(10.0f,5.2f,3.0f)); //transilramo tamo gde je koliba
-        floorShader.setMat4("model",model);
-
-        glBindVertexArray(floorVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D,floorTexture);
-        glDrawArrays(GL_TRIANGLES,0,6);
-        glBindVertexArray(0);
 
 
             //grass
@@ -651,6 +625,29 @@ int main() {
             grassInstancedShader.setInt("texture_diffuse1",0);
             grassInstancedShader.setMat4("projection",projection);
             grassInstancedShader.setMat4("view",view);
+        grassInstancedShader.setVec3("pointLight.position",pointLight.position);
+        grassInstancedShader.setVec3("pointLight.ambient",pointLight.ambient);
+        grassInstancedShader.setVec3("pointLight.diffuse",pointLight.diffuse);
+        grassInstancedShader.setVec3("pointLight.specular",pointLight.specular);
+        grassInstancedShader.setFloat("pointLight.constant",pointLight.constant);
+        grassInstancedShader.setFloat("pointLight.linear",pointLight.linear);
+        grassInstancedShader.setFloat("pointLight.quadratic",pointLight.quadratic);
+        grassInstancedShader.setVec3("dirLight.direction",dirLight.direction);
+        grassInstancedShader.setVec3("dirLight.ambient",dirLight.ambient);
+        grassInstancedShader.setVec3("dirLight.diffuse",dirLight.diffuse);
+        grassInstancedShader.setVec3("dirLight.specular",dirLight.specular);
+        grassInstancedShader.setVec3("spotLight.position",spotLight.position);
+        grassInstancedShader.setVec3("spotLight.direction",spotLight.direction);
+        grassInstancedShader.setVec3("spotLight.ambient",spotLight.ambient);
+        grassInstancedShader.setVec3("spotLight.diffuse",spotLight.diffuse);
+        grassInstancedShader.setVec3("spotLight.specular",spotLight.specular);
+        grassInstancedShader.setFloat("spotLight.constant",spotLight.constant);
+        grassInstancedShader.setFloat("spotLight.linear",spotLight.linear);
+        grassInstancedShader.setFloat("spotLight.quadratic",spotLight.quadratic);
+        grassInstancedShader.setFloat("spotLight.cutOff",spotLight.cutOff);
+        grassInstancedShader.setFloat("spotLight.position",spotLight.outerCutOff);
+
+        grassInstancedShader.setVec3("viewPos", programState->camera.Position);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D,grassTexture);

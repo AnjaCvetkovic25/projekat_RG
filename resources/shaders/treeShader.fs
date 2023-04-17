@@ -81,7 +81,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal,vec3 viewDir)
     vec3 lightDir=normalize(-light.direction);
 
     float diff = max(dot(normal,lightDir),0.0);
-    vec3 reflectDir=reflect(-light.direction,normal); //nemamo spek komponentu
+    //vec3 reflectDir=reflect(-light.direction,normal); //nemamo spek komponentu
 
     vec3 ambient=light.ambient*vec3(texture(material.texture_diffuse1,TexCoords)*vec4(0.51, 0.416, 0.282,0.0));
     vec3 diffuse=light.diffuse*diff*vec3(texture(material.texture_diffuse1,TexCoords)*vec4(0.51, 0.416, 0.282,0.0));
