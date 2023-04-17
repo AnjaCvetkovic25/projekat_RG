@@ -15,4 +15,8 @@ kao i pomeraji kursora.
 
 
 
+Video: `https://youtu.be/T8yE34d8Xdo`
+
+
+
 

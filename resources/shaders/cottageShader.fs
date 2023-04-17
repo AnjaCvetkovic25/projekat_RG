@@ -88,7 +88,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal,vec3 fragPos,vec3 viewDir)
     vec3 lightDir=normalize(fragPos-light.position);
 
     float diff=max(dot(normal, lightDir),0.0);
-    vec3 reflectDir=reflect(-lightDir,normal);
+    vec3 reflectDir=reflect(-lightDir,normal);//ne treba za blinn phongov model
     vec3 halfwayDir=normalize(lightDir+viewDir);
         float spec=pow(max(dot(normal,halfwayDir),0.0),material.shininess);
     //attenuation
